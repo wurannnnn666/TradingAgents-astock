@@ -69,7 +69,7 @@ deepseek-v4-flash 等模型在 tool call 时可能返回中文股票名而非 6 
 
 ### Issue tracker
 
-Issues are tracked in GitHub Issues for `simonlin1212/TradingAgents-astock`; external PRs are not a triage surface. See `docs/agents/issue-tracker.md`.
+Issues are tracked in GitHub Issues for `wurannnnn666/TradingAgents-astock`; external PRs are not a triage surface. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
