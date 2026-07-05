@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import sys
 import time
+from datetime import date
 from pathlib import Path
 
 import streamlit as st
@@ -20,6 +21,8 @@ load_dotenv(_PROJECT_ROOT / ".env", override=True)
 
 from tradingagents.default_config import DEFAULT_CONFIG  # noqa: E402
 
+from web.components.kol_radar_panel import render_kol_radar_panel  # noqa: E402
+from web.components.local_system_panel import render_local_system_panel  # noqa: E402
 from web.components.progress_panel import render_progress  # noqa: E402
 from web.components.report_viewer import render_report  # noqa: E402
 from web.components.sidebar import render_sidebar  # noqa: E402
@@ -178,6 +181,74 @@ def _build_config() -> dict:
     return config
 
 
+def _parse_trade_date(value: str) -> date:
+    from datetime import datetime
+
+    return datetime.strptime(value, "%Y-%m-%d").date()
+
+
+def _render_welcome() -> None:
+    st.markdown(
+        """
+        <div style="
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 52vh;
+            text-align: center;
+        ">
+            <div style="font-size: 4rem; margin-bottom: 1rem;">📈</div>
+            <div style="
+                font-size: 2.5rem;
+                font-weight: 900;
+                margin-bottom: 0.5rem;
+            ">
+                <span style="color: #ff5a1f;">Trading</span><span style="color: #f5f1eb;">Agents</span><span style="color: #f5f1eb;">-</span><span style="color: #ff5a1f;">Astock</span>
+            </div>
+            <div style="color: #888; font-size: 1.1rem; max-width: 560px; line-height: 1.6;">
+                A 股多 Agent 投研分析系统<br>
+                个股分析 + KOL 信息雷达 + Obsidian 本机知识库 + Horizon 信息源联动
+            </div>
+            <div style="
+                margin-top: 2rem;
+                padding: 1rem 2rem;
+                border: 1px solid #222;
+                border-radius: 12px;
+                color: #666;
+                font-size: 0.9rem;
+            ">
+                在左侧输入股票代码开始分析，或切到 KOL 雷达查看本机信号。
+            </div>
+            <div style="
+                margin-top: 2.5rem;
+                padding: 0.8rem 1.5rem;
+                color: #555;
+                font-size: 0.75rem;
+                max-width: 560px;
+                line-height: 1.6;
+                border-top: 1px solid #1a1a1a;
+            ">
+                ⚠️ 本项目仅供学习研究与技术演示，不构成任何投资建议。<br>
+                投资决策请咨询持牌专业机构。作者不对使用本工具产生的任何损失承担责任。
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def _render_dashboard(default_symbol: str = "", trade_date: str | None = None) -> None:
+    parsed_date = _parse_trade_date(trade_date) if trade_date else date.today()
+    tab_analysis, tab_kol, tab_local = st.tabs(["个股分析", "KOL 雷达", "本机系统"])
+    with tab_analysis:
+        _render_welcome()
+    with tab_kol:
+        render_kol_radar_panel(default_symbol=default_symbol, default_trade_date=parsed_date)
+    with tab_local:
+        render_local_system_panel()
+
+
 # ── Sidebar ──────────────────────────────────────────────────────────────────
 
 with st.sidebar:
@@ -225,6 +296,11 @@ if viewing_history:
         ticker = Path(viewing_history).parent.parent.name
         trade_date = Path(viewing_history).stem.replace("full_states_log_", "")
         render_report(state, ticker, trade_date, signal)
+        st.markdown("---")
+        render_kol_radar_panel(
+            default_symbol=ticker,
+            default_trade_date=_parse_trade_date(trade_date),
+        )
     except Exception as exc:
         st.error(f"加载失败: {exc}")
 
@@ -243,6 +319,11 @@ elif tracker and tracker.is_complete:
         tracker.signal,
         elapsed=tracker.elapsed,
     )
+    st.markdown("---")
+    render_kol_radar_panel(
+        default_symbol=tracker.ticker,
+        default_trade_date=_parse_trade_date(tracker.trade_date),
+    )
 
 # State 4: Analysis errored
 elif tracker and tracker.error:
@@ -256,7 +337,10 @@ elif tracker and tracker.error:
         st.session_state["viewing_history"] = None
         st.rerun()
 
-# State 0: Idle — welcome screen
+elif not tracker and not viewing_history:
+    _render_dashboard()
+
+# State 0: Idle — legacy welcome fallback
 else:
     st.markdown(
         """

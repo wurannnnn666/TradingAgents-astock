@@ -9,6 +9,7 @@ import streamlit as st
 from tradingagents.default_config import DEFAULT_CONFIG
 from tradingagents.graph.checkpointer import clear_checkpoint
 from tradingagents.llm_clients.model_catalog import MODEL_OPTIONS
+from web.components.kol_radar_panel import render_kol_status_badge
 from web.history import (
     clear_incomplete_task,
     get_history,
@@ -209,6 +210,8 @@ def render_sidebar() -> None:
         unsafe_allow_html=True,
     )
 
+    st.markdown("---")
+    render_kol_status_badge()
     st.markdown("---")
     st.markdown("#### 新建分析")
 
